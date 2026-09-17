@@ -1,0 +1,111 @@
+import pandas as pd
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+
+df = pd.read_csv("imdb_data/IMDB Dataset.csv")
+
+print(df.shape)
+print(df.head())
+print(df['sentiment'].value_counts())
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'<br\s*/?>', ' ', text)
+    text = re.sub(r'[^a-z\s]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+df['clean_review'] = df['review'].apply(clean_text)
+
+X_train_text, X_test_text, y_train, y_test = train_test_split(
+    df['clean_review'], df['sentiment'], test_size=0.2, random_state=42
+)
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X_train = vectorizer.fit_transform(X_train_text)
+X_test = vectorizer.transform(X_test_text)
+
+print(X_train.shape)
+print(X_test.shape)
+
+model = MultinomialNB()
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+probs = model.predict_proba(X_test)
+classes = model.classes_
+confidence = probs.max(axis=1)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+
+# threshold = 0.91
+
+# def label_with_maybe(prob_row):
+#     max_prob = prob_row.max()
+#     predicted_class = classes[prob_row.argmax()]
+#     if max_prob < threshold:
+#         return "maybe"
+#     return predicted_class
+
+# y_pred_with_maybe = [label_with_maybe(row) for row in probs]
+
+# results = pd.DataFrame({
+#     'review': X_test_text,
+#     'actual': y_test,
+#     'predicted': y_pred,
+#     'predicted_with_maybe': y_pred_with_maybe,
+#     'confidence': confidence
+# })
+
+# false_positives = results[(results['actual'] == 'negative') & (results['predicted'] == 'positive')]
+# false_negatives = results[(results['actual'] == 'positive') & (results['predicted'] == 'negative')]
+
+# false_positives_maybe = results[(results['actual'] == 'negative') & (results['predicted_with_maybe'] == 'maybe')]
+# false_negatives_maybe = results[(results['actual'] == 'positive') & (results['predicted_with_maybe'] == 'maybe')]
+
+# print("False Positives (hard label):", false_positives.shape[0])
+# print(false_positives.head())
+
+# print("False Negatives (hard label):", false_negatives.shape[0])
+# print(false_negatives.head())
+# print("Cases now labeled 'maybe' instead of False Positive:", false_positives_maybe.shape[0])
+# print(false_positives_maybe.head())
+
+# print("Cases now labeled 'maybe' instead of False Negative:", false_negatives_maybe.shape[0])
+# print(false_negatives_maybe.head())
+
+# print("Accuracy:", accuracy_score(y_test, y_pred))
+# print(classification_report(y_test, y_pred))
+
+# print(results['predicted_with_maybe'].value_counts())
+
+# confident_mask = results['predicted_with_maybe'] != 'maybe'
+# confident_results = results[confident_mask]
+
+# confident_accuracy = accuracy_score(confident_results['actual'], confident_results['predicted_with_maybe'])
+# print("Accuracy on confident predictions only:", confident_accuracy)
+# print("Number of confident predictions:", confident_results.shape[0])
+# print("Number of 'maybe' predictions:", (results['predicted_with_maybe'] == 'maybe').shape[0])
+
+# confident_errors = confident_results[confident_results['actual'] != confident_results['predicted_with_maybe']]
+
+# print("\n---------------------")
+# print(f" TOTAL CONFIDENT MISTAKES: {confident_errors.shape[0]}")
+# print("------------------------")
+
+# confident_false_positives = confident_errors[confident_errors['actual'] == 'negative']
+# confident_false_negatives = confident_errors[confident_errors['actual'] == 'positive']
+
+# print(f"\n--- Top 3 Confident FALSE POSITIVES (Actual: NEGATIVE, Predicted: POSITIVE) ---")
+# for idx, row in confident_false_positives.sort_values(by='confidence', ascending=False).head(3).iterrows():
+#     print(f"\n[Confidence: {row['confidence']:.2f}]")
+#     print(f"Review: {row['review']}...")
+#     print()
+
+# print(f"\n--- Top 3 Confident FALSE NEGATIVES (Actual: POSITIVE, Predicted: NEGATIVE) ---")
+# for idx, row in confident_false_negatives.sort_values(by='confidence', ascending=False).head(3).iterrows():
+#     print(f"\n[Confidence: {row['confidence']:.2f}]")
+#     print(f"Review: {row['review']}...")
+#     print()
