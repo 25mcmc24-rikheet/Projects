@@ -1,5 +1,5 @@
 
-let tasks = [];
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let filter = "all";
 
 document.getElementById("dueDate").min = new Date().toLocaleDateString("en-CA");
@@ -72,6 +72,7 @@ function showTasks() {
 
     document.getElementById("counts").textContent =
         `Total: ${tasks.length} | Pending: ${tasks.length - completed} | Completed: ${completed}`;
+    localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
 function filterTasks(type) {
